@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
@@ -35,6 +37,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CategoriaEnUsoException.class)
     public ResponseEntity<Map<String, String>> handleCategoriaEnUso(CategoriaEnUsoException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DenunciaDuplicadaException.class)
+    public ResponseEntity<Map<String, String>> handleDenunciaDuplicada(DenunciaDuplicadaException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
             .body(Map.of("error", ex.getMessage()));
     }
@@ -85,6 +93,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDisabled(DisabledException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
             .body(Map.of("error", "Tu cuenta no ha sido activada. Por favor, revisa tu correo."));
+    }
+
+    /** @PreAuthorize denegado (p. ej. un usuario normal en una ruta de administrador). */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccesoDenegadoSeguridad(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(Map.of("error", "No tienes permisos para realizar esta acción"));
+    }
+
+    /** JSON mal formado o con un valor no válido (p. ej. un motivo de denuncia que no existe). */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleCuerpoInvalido(HttpMessageNotReadableException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Los datos enviados no son válidos"));
     }
 
     @ExceptionHandler(Exception.class)

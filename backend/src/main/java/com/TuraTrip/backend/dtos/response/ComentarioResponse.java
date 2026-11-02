@@ -11,6 +11,7 @@ public record ComentarioResponse(
     String autorNombre,
     String autorFotoPerfil,
     Long publicacionId,
-    String publicacionTitulo
+    String publicacionTitulo,
+    boolean autorVerificado
 
 ) {}
