@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { publicacionService } from "@/services/publicacionService";
+import { Publicacion } from "@/types/publicacion";
 import { formatCommaSeparatedHashtags } from "@/lib/utils";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -14,23 +15,50 @@ const normalizeCategoria = (cat: string | undefined | null): string => {
 };
 
 interface UseModalPublicarProps {
-  onSuccess: (idPublicacion: number) => void;
+  // Si se recibe, el formulario edita esa publicación en lugar de crear una nueva
+  publicacion?: Publicacion;
+  onSuccess: (publicacion: Publicacion) => void;
   onClose: () => void;
 }
 
 export function useModalPublicar({
+  publicacion,
   onSuccess,
   onClose,
 }: UseModalPublicarProps) {
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [categoria, setCategoria] = useState<string>("");
+  const categoriaInicial = normalizeCategoria(publicacion?.categoriaNombre);
+
+  const [titulo, setTitulo] = useState(publicacion?.titulo ?? "");
+  const [descripcion, setDescripcion] = useState(
+    publicacion?.descripcion ?? ""
+  );
+  const [categoria, setCategoria] = useState<string>(categoriaInicial);
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [vistaPreviaArchivo, setVistaPreviaArchivo] = useState<string | null>(
+    null
+  );
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
-  const [latitud, setLatitud] = useState<number | null>(null);
-  const [longitud, setLongitud] = useState<number | null>(null);
-  const [direccion, setDireccion] = useState<string>("");
+  const [latitud, setLatitud] = useState<number | null>(
+    publicacion?.latitud ?? null
+  );
+  const [longitud, setLongitud] = useState<number | null>(
+    publicacion?.longitud ?? null
+  );
+  const [direccion, setDireccion] = useState<string>(
+    publicacion?.direccion ?? ""
+  );
+
+  useEffect(() => {
+    if (!archivo) {
+      setVistaPreviaArchivo(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(archivo);
+    setVistaPreviaArchivo(url);
+    return () => URL.revokeObjectURL(url);
+  }, [archivo]);
 
   const resetForm = () => {
     setTitulo("");
@@ -65,12 +93,15 @@ export function useModalPublicar({
   };
 
   const handleCategoriaBlur = () => {
+    // Sin cambios no se reformatea: el formateador unificaría los espacios de
+    // una categoría ya guardada (ej: "#Viaje #Relax") y la convertiría en otra.
+    if (categoria === categoriaInicial) return;
     setCategoria(formatCommaSeparatedHashtags(categoria));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!archivo) {
+    if (!publicacion && !archivo) {
       setError("La imagen es obligatoria.");
       return;
     }
@@ -78,20 +109,21 @@ export function useModalPublicar({
     setCargando(true);
     setError("");
 
+    const datos = {
+      titulo,
+      descripcion,
+      categoria: normalizeCategoria(categoria) || null,
+      latitud: latitud ?? undefined,
+      longitud: longitud ?? undefined,
+      direccion: direccion || null,
+    };
+
     try {
-      const nuevaPublicacion = await publicacionService.crear(
-        {
-          titulo,
-          descripcion,
-          categoria: normalizeCategoria(categoria) || null,
-          latitud: latitud ?? undefined,
-          longitud: longitud ?? undefined,
-          direccion: direccion || null,
-        },
-        archivo
-      );
+      const guardada = publicacion
+        ? await publicacionService.editar(publicacion.id, datos, archivo)
+        : await publicacionService.crear(datos, archivo as File);
       resetForm();
-      onSuccess(nuevaPublicacion.id);
+      onSuccess(guardada);
       onClose();
     } catch (err: any) {
       setCargando(false);
@@ -105,7 +137,11 @@ export function useModalPublicar({
       } else if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
-        setError("Ocurrió un error inesperado al publicar.");
+        setError(
+          publicacion
+            ? "Ocurrió un error inesperado al guardar los cambios."
+            : "Ocurrió un error inesperado al publicar."
+        );
       }
     }
   };
@@ -120,7 +156,13 @@ export function useModalPublicar({
     setArchivo(file);
   };
 
+  const descartarArchivo = () => {
+    setArchivo(null);
+  };
+
   return {
+    vistaPreviaArchivo,
+    descartarArchivo,
     titulo,
     setTitulo,
     descripcion,

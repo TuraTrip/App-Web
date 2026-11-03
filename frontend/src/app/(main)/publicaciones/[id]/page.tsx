@@ -76,6 +76,7 @@ export default function DetallePublicacionPage() {
         usuarioActualId={usuario?.id}
         usuarioRoles={usuario?.roles}
         onDeleteSuccess={handleDeleteSuccess}
+        onEditSuccess={setPublicacion}
       />
 
       <ModalImagenExpandida

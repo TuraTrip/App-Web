@@ -26,6 +26,7 @@ export default function PerfilVista({ usuarioIdObjetivo }: PerfilVistaProps) {
     imagenExpandida,
     setImagenExpandida,
     handleDeleteSuccess,
+    handleEditSuccess,
     handlePerfilActualizado,
     fetchNextPage,
   } = usePerfilVista(usuarioIdObjetivo);
@@ -93,6 +94,7 @@ export default function PerfilVista({ usuarioIdObjetivo }: PerfilVistaProps) {
           usuarioActualId={usuarioActual?.id}
           usuarioRoles={usuarioActual?.roles}
           onDeleteSuccess={handleDeleteSuccess}
+          onEditSuccess={handleEditSuccess}
           hasMore={hasMore}
           loadingMore={loadingMore}
           onLoadMore={fetchNextPage}

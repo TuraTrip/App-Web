@@ -54,6 +54,30 @@ export const publicacionService = {
     return res.data;
   },
 
+  // Si no se envía archivo, el backend conserva la foto actual
+  editar: async (
+    id: number | string,
+    datos: PublicacionRequest,
+    archivo?: File | null
+  ) => {
+    const formData = new FormData();
+
+    const jsonBlob = new Blob([JSON.stringify(datos)], {
+      type: "application/json",
+    });
+
+    formData.append("publicacion", jsonBlob);
+    if (archivo) {
+      formData.append("archivo", archivo);
+    }
+
+    const res = await apiClient.put<Publicacion>(
+      `/v1/publicaciones/${id}`,
+      formData
+    );
+    return res.data;
+  },
+
   eliminar: async (id: number | string) => {
     await apiClient.delete(`/v1/publicaciones/${id}`);
   },

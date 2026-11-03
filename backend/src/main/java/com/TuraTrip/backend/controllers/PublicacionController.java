@@ -47,6 +47,22 @@ public class PublicacionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaPublicacion);
     }
 
+    /**
+     * Edita los datos de la publicación. Solo el autor.
+     * La parte {@code archivo} es opcional: si no llega, se conserva la foto actual.
+     */
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PublicacionResponse> editarPublicacion(
+            @PathVariable Long id,
+            Authentication authentication,
+            @Valid @RequestPart("publicacion") PublicacionRequest request,
+            @RequestPart(value = "archivo", required = false) MultipartFile archivo
+    ) {
+        String correoUsuario = authentication.getName();
+        PublicacionResponse actualizada = publicacionService.editarPublicacion(id, correoUsuario, request, archivo);
+        return ResponseEntity.ok(actualizada);
+    }
+
     @GetMapping("/mias")
     public ResponseEntity<Page<PublicacionResponse>> obtenerMisPublicaciones(
             Authentication authentication,
