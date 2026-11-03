@@ -180,7 +180,7 @@ Con **3 denuncias** de personas distintas el contenido se oculta solo
 - `SecurityConfig` tiene `@EnableMethodSecurity`: sin él, los `@PreAuthorize("hasRole('ADMIN')")`
   de categorías no se aplicaban y cualquier usuario podía crearlas o borrarlas.
 - `/api/v1/admin/**` exige rol ADMIN desde la propia configuración de rutas.
-- Acceso denegado responde **403** y un JSON inválido **400** (`GlobalExceptionHandler`).
+- Sin sesión válida (sin token, vencido o de una cuenta eliminada) las rutas protegidas responden **401**; las públicas siguen funcionando. Con sesión pero sin permisos, **403**. Un JSON inválido, **400**.
 - El bean `passwordEncoder()` necesita `@Bean`: se perdió una vez en un merge y el backend no arrancaba.
 
 ## 📱 App móvil
