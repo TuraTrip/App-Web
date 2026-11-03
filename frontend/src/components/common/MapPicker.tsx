@@ -26,6 +26,9 @@ export default function MapPicker({
     latitud != null && longitud != null ? ([latitud, longitud] as [number, number]) : null
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Solo se busca cuando el usuario cambia el texto. Así, abrir una publicación
+  // con ubicación o volver a renderizar el formulario no la sobrescribe.
+  const ultimaBusquedaRef = useRef(query);
 
   const mapCenter = coords || DEFAULT_CENTER;
 
@@ -38,6 +41,8 @@ export default function MapPicker({
   const [mapKey, setMapKey] = useState(0);
 
   useEffect(() => {
+    if (query === ultimaBusquedaRef.current) return;
+
     if (timerRef.current) clearTimeout(timerRef.current);
 
     if (!query || query.trim().length < 3) {
@@ -45,6 +50,7 @@ export default function MapPicker({
     }
 
     timerRef.current = setTimeout(async () => {
+      ultimaBusquedaRef.current = query;
       try {
         const url = new URL("https://nominatim.openstreetmap.org/search");
         url.searchParams.set("format", "json");

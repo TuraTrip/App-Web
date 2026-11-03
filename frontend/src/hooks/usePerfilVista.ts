@@ -162,6 +162,12 @@ export function usePerfilVista(usuarioIdObjetivo?: string | number) {
     setPublicaciones((prev) => prev.filter((p) => p.id !== idEliminado));
   };
 
+  const handleEditSuccess = (actualizada: Publicacion) => {
+    setPublicaciones((prev) =>
+      prev.map((p) => (p.id === actualizada.id ? actualizada : p))
+    );
+  };
+
   const handlePerfilActualizado = (nuevoPerfil: Perfil) => {
     setPerfil(nuevoPerfil);
     actualizarUsuario({
@@ -183,6 +189,7 @@ export function usePerfilVista(usuarioIdObjetivo?: string | number) {
     imagenExpandida,
     setImagenExpandida,
     handleDeleteSuccess,
+    handleEditSuccess,
     handlePerfilActualizado,
     fetchNextPage,
   };

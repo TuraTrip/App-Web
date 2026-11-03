@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.TuraTrip.backend.dtos.request.PublicacionRequest;
@@ -47,20 +49,7 @@ public class PublicacionServiceImpl implements PublicacionService {
         String rutaRelativa = storageService.guardarArchivo(archivo, "publicaciones");
 
         // 3. Construir y guardar la publicación con la ruta relativa
-        Categoria categoria = null;
-        if (request.categoria() != null && !request.categoria().isBlank()) {
-            String nombreCategoria = request.categoria().trim();
-            if (nombreCategoria.startsWith("#")) {
-                nombreCategoria = nombreCategoria.substring(1).trim();
-            }
-
-            final String nombreFinal = nombreCategoria; // Variable inmutable para la lambda
-
-            if (!nombreFinal.isBlank()) {
-                categoria = categoriaRepository.findByNombreIgnoreCase(nombreFinal)
-                        .orElseGet(() -> categoriaRepository.save(Categoria.builder().nombre(nombreFinal).build()));
-            }
-        }
+        Categoria categoria = resolverCategoria(request.categoria());
 
         Publicacion publicacion = Publicacion.builder()
                 .titulo(request.titulo())
@@ -77,6 +66,39 @@ public class PublicacionServiceImpl implements PublicacionService {
         Publicacion guardada = publicacionRepository.save(publicacion);
 
         return publicacionMapper.toResponse(guardada);
+    }
+
+    @Override
+    @Transactional
+    public PublicacionResponse editarPublicacion(Long id, String correo, PublicacionRequest request, MultipartFile archivo) {
+        Publicacion publicacion = publicacionRepository.findById(id)
+                .orElseThrow(() -> new PublicacionNoEncontradaException("La publicación no existe"));
+
+        Usuario usuarioActual = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+
+        // A diferencia de eliminar, un administrador no puede editar publicaciones ajenas
+        boolean esPropietario = publicacion.getUsuario().getId().equals(usuarioActual.getId());
+
+        if (!esPropietario) {
+            throw new AccesoNoAutorizadoException("No tienes permisos para editar esta publicación");
+        }
+
+        publicacion.setTitulo(request.titulo());
+        publicacion.setDescripcion(request.descripcion());
+        publicacion.setCategoria(resolverCategoria(request.categoria()));
+        publicacion.setDireccion(request.direccion());
+        publicacion.setLatitud(request.latitud());
+        publicacion.setLongitud(request.longitud());
+
+        if (archivo != null && !archivo.isEmpty()) {
+            String imagenAnterior = publicacion.getImagen();
+            String imagenNueva = storageService.guardarArchivo(archivo, "publicaciones");
+            publicacion.setImagen(imagenNueva);
+            limpiarImagenAlTerminar(imagenAnterior, imagenNueva);
+        }
+
+        return publicacionMapper.toResponse(publicacion);
     }
 
     @Override
@@ -146,5 +168,40 @@ public class PublicacionServiceImpl implements PublicacionService {
 
         // 5. Eliminar el registro en la base de datos
         publicacionRepository.delete(publicacion);
+    }
+
+    /** Busca la categoría por nombre (sin el "#" inicial) y la crea si no existe. Vacía equivale a sin categoría. */
+    private Categoria resolverCategoria(String nombre) {
+        if (nombre == null || nombre.isBlank()) {
+            return null;
+        }
+
+        String nombreCategoria = nombre.trim();
+        if (nombreCategoria.startsWith("#")) {
+            nombreCategoria = nombreCategoria.substring(1).trim();
+        }
+
+        final String nombreFinal = nombreCategoria; // Variable inmutable para la lambda
+
+        if (nombreFinal.isBlank()) {
+            return null;
+        }
+
+        return categoriaRepository.findByNombreIgnoreCase(nombreFinal)
+                .orElseGet(() -> categoriaRepository.save(Categoria.builder().nombre(nombreFinal).build()));
+    }
+
+    /**
+     * El disco no participa en la transacción: la foto anterior solo se borra si el cambio se
+     * confirmó y, si se revierte, se borra la nueva para que la publicación no pierda su imagen
+     * ni queden archivos huérfanos.
+     */
+    private void limpiarImagenAlTerminar(String imagenAnterior, String imagenNueva) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                storageService.eliminarArchivo(status == STATUS_COMMITTED ? imagenAnterior : imagenNueva);
+            }
+        });
     }
 }

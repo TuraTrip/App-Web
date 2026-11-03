@@ -14,6 +14,7 @@ interface TarjetaPublicacionProps {
   usuarioActualId?: number;
   usuarioRoles?: (string | Rol)[];
   onDeleteSuccess?: (id: number) => void;
+  onEditSuccess?: (publicacion: Publicacion) => void;
   priority?: boolean;
 }
 
@@ -23,6 +24,7 @@ export default function TarjetaPublicacion({
   usuarioActualId,
   usuarioRoles = [],
   onDeleteSuccess,
+  onEditSuccess,
   priority = false,
 }: TarjetaPublicacionProps) {
   const router = useRouter();
@@ -58,7 +60,7 @@ export default function TarjetaPublicacion({
     >
       {/* CABECERA (Redirige al detalle si se presiona en zonas neutras) */}
       <CabeceraAutor
-        publicacionId={publicacion.id}
+        publicacion={publicacion}
         autorId={publicacion.autorId}
         autorNombre={publicacion.autorNombre}
         autorFotoPerfil={publicacion.autorFotoPerfil}
@@ -66,6 +68,7 @@ export default function TarjetaPublicacion({
         esPropietario={esPropietario}
         esAdmin={esAdmin}
         onDeleteSuccess={onDeleteSuccess}
+        onEditSuccess={onEditSuccess}
       />
 
       {/* CONTENEDOR DE LA IMAGEN */}
