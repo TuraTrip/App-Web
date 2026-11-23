@@ -32,6 +32,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -98,7 +100,7 @@ public class PublicacionServiceImpl implements PublicacionService {
     @Transactional
     public PublicacionResponse editarPublicacion(Long id, String correo, PublicacionRequest request) {
         Publicacion publicacion = buscarPublicacion(id);
-        verificarPermiso(publicacion, buscarUsuario(correo), "No tienes permisos para editar esta publicación");
+        verificarAutor(publicacion, buscarUsuario(correo));
 
         // Solo los datos; las fotos se cambian con reemplazarImagenes().
         aplicarDatos(publicacion, request);
@@ -115,7 +117,7 @@ public class PublicacionServiceImpl implements PublicacionService {
     public PublicacionResponse reemplazarImagenes(
             Long id, String correo, List<String> orden, List<MultipartFile> nuevas) {
         Publicacion publicacion = buscarPublicacion(id);
-        verificarPermiso(publicacion, buscarUsuario(correo), "No tienes permisos para editar esta publicación");
+        verificarAutor(publicacion, buscarUsuario(correo));
         validarCantidad(orden.size());
 
         Map<Long, String> existentes = publicacion.getImagenes().stream()
@@ -158,6 +160,33 @@ public class PublicacionServiceImpl implements PublicacionService {
         Publicacion actualizada = publicacionRepository.save(publicacion);
         quitadas.forEach(storageService::eliminarArchivo);
         return aRespuesta(actualizada);
+    }
+
+    /**
+     * Edición desde la web (formulario con la parte {@code publicacion} y, opcionalmente,
+     * {@code archivo}). La foto nueva reemplaza la portada; las demás fotos se conservan.
+     */
+    @Override
+    @Transactional
+    public PublicacionResponse editarPublicacion(Long id, String correo, PublicacionRequest request, MultipartFile archivo) {
+        Publicacion publicacion = buscarPublicacion(id);
+        verificarAutor(publicacion, buscarUsuario(correo));
+        aplicarDatos(publicacion, request);
+
+        if (archivo != null && !archivo.isEmpty()) {
+            String imagenAnterior = publicacion.getImagen();
+            String imagenNueva = storageService.guardarArchivo(archivo, "publicaciones");
+            List<String> rutas = new ArrayList<>(publicacion.getImagenes().stream().map(PublicacionImagen::getRuta).toList());
+            if (rutas.isEmpty()) {
+                rutas.add(imagenNueva);
+            } else {
+                rutas.set(0, imagenNueva);
+            }
+            ponerImagenes(publicacion, rutas);
+            limpiarImagenAlTerminar(imagenAnterior, imagenNueva);
+        }
+
+        return aRespuesta(publicacionRepository.save(publicacion));
     }
 
     @Override
@@ -372,7 +401,7 @@ public class PublicacionServiceImpl implements PublicacionService {
     private void aplicarDatos(Publicacion publicacion, PublicacionRequest request) {
         publicacion.setTitulo(request.titulo().trim());
         publicacion.setDescripcion(request.descripcion().trim());
-        publicacion.setCategoria(buscarCategoria(request.categoria()));
+        publicacion.setCategoria(resolverCategoria(request.categoria()));
 
         boolean conCoordenadas = request.latitud() != null && request.longitud() != null;
         publicacion.setLatitud(conCoordenadas ? request.latitud() : null);
@@ -381,16 +410,11 @@ public class PublicacionServiceImpl implements PublicacionService {
                 request.direccion() != null && !request.direccion().isBlank() ? request.direccion().trim() : null);
     }
 
-    /**
-     * Busca la categoría por nombre (sin el "#" inicial) y, si no existe, la crea: es como
-     * funciona la generación automática de hashtags de la web (SUG-20).
-     */
-    private Categoria buscarCategoria(String nombre) {
-        if (nombre == null || nombre.isBlank()) return null;
-        String limpio = nombre.trim().replaceFirst("^#", "").trim();
-        if (limpio.isBlank()) return null;
-        return categoriaRepository.findByNombreIgnoreCase(limpio)
-                .orElseGet(() -> categoriaRepository.save(Categoria.builder().nombre(limpio).build()));
+    /** A diferencia de eliminar, un administrador no puede editar publicaciones ajenas. */
+    private void verificarAutor(Publicacion publicacion, Usuario usuario) {
+        if (!publicacion.getUsuario().getId().equals(usuario.getId())) {
+            throw new AccesoNoAutorizadoException("No tienes permisos para editar esta publicación");
+        }
     }
 
     private void verificarPermiso(Publicacion publicacion, Usuario usuario, String mensaje) {
@@ -476,5 +500,40 @@ public class PublicacionServiceImpl implements PublicacionService {
     private Usuario buscarUsuario(String correo) {
         return usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+    }
+
+    /** Busca la categoría por nombre (sin el "#" inicial) y la crea si no existe. Vacía equivale a sin categoría. */
+    private Categoria resolverCategoria(String nombre) {
+        if (nombre == null || nombre.isBlank()) {
+            return null;
+        }
+
+        String nombreCategoria = nombre.trim();
+        if (nombreCategoria.startsWith("#")) {
+            nombreCategoria = nombreCategoria.substring(1).trim();
+        }
+
+        final String nombreFinal = nombreCategoria; // Variable inmutable para la lambda
+
+        if (nombreFinal.isBlank()) {
+            return null;
+        }
+
+        return categoriaRepository.findByNombreIgnoreCase(nombreFinal)
+                .orElseGet(() -> categoriaRepository.save(Categoria.builder().nombre(nombreFinal).build()));
+    }
+
+    /**
+     * El disco no participa en la transacción: la foto anterior solo se borra si el cambio se
+     * confirmó y, si se revierte, se borra la nueva para que la publicación no pierda su imagen
+     * ni queden archivos huérfanos.
+     */
+    private void limpiarImagenAlTerminar(String imagenAnterior, String imagenNueva) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                storageService.eliminarArchivo(status == STATUS_COMMITTED ? imagenAnterior : imagenNueva);
+            }
+        });
     }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import { Publicacion } from "@/types/publicacion";
 import ModalPublicar from "@/components/publicaciones/ModalPublicar";
 import UserAvatar from "@/components/common/UserAvatar";
 import Toast from "@/components/common/Toast";
@@ -21,8 +22,8 @@ export default function Navbar() {
     router.push("/login");
   };
 
-  const handlePublicacionExitosas = (idPublicacion: number) => {
-    setPostIdCreado(idPublicacion);
+  const handlePublicacionExitosas = (publicacion: Publicacion) => {
+    setPostIdCreado(publicacion.id);
     setMostrarToast(true);
     window.dispatchEvent(new Event("postCreado"));
   };

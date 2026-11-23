@@ -84,6 +84,12 @@ export default function MainPage() {
     setPublicaciones((prev) => prev.filter((p) => p.id !== idEliminado));
   };
 
+  const handleEditSuccess = (actualizada: Publicacion) => {
+    setPublicaciones((prev) =>
+      prev.map((p) => (p.id === actualizada.id ? actualizada : p))
+    );
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12 text-gray-500 dark:text-gray-400 font-medium animate-pulse">
@@ -106,6 +112,7 @@ export default function MainPage() {
         usuarioActualId={perfil?.id}
         usuarioRoles={perfil?.roles}
         onDeleteSuccess={handleDeleteSuccess}
+        onEditSuccess={handleEditSuccess}
         hasMore={hasMore}
         loadingMore={loadingMore}
         onLoadMore={fetchNextPage}

@@ -15,6 +15,8 @@ public interface PublicacionService {
     PublicacionResponse crearPublicacion(String correo, PublicacionRequest request, List<MultipartFile> archivos);
     PublicacionResponse editarPublicacion(Long id, String correo, PublicacionRequest request);
     PublicacionResponse reemplazarImagenes(Long id, String correo, List<String> orden, List<MultipartFile> nuevas);
+    /** Edición desde la web: {@code archivo} es opcional y, si llega, reemplaza la portada. */
+    PublicacionResponse editarPublicacion(Long id, String correo, PublicacionRequest request, MultipartFile archivo);
     Page<PublicacionResponse> obtenerTodasLasPublicaciones(int page, int size);
     PublicacionResponse obtenerPublicacionPorId(Long id);
     Page<PublicacionResponse> obtenerPublicacionesPorUsuarioId(Long usuarioId, int page, int size);

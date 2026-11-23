@@ -12,6 +12,7 @@ interface FeedPublicacionesProps {
   usuarioActualId?: number;
   usuarioRoles?: (string | Rol)[];
   onDeleteSuccess?: (id: number) => void;
+  onEditSuccess?: (publicacion: Publicacion) => void;
   hasMore?: boolean;
   loadingMore?: boolean;
   onLoadMore?: () => void;
@@ -24,6 +25,7 @@ export default function FeedPublicaciones({
   usuarioActualId,
   usuarioRoles,
   onDeleteSuccess,
+  onEditSuccess,
   hasMore = false,
   loadingMore = false,
   onLoadMore,
@@ -71,6 +73,7 @@ export default function FeedPublicaciones({
           usuarioActualId={usuarioActualId}
           usuarioRoles={usuarioRoles}
           onDeleteSuccess={onDeleteSuccess}
+          onEditSuccess={onEditSuccess}
         />
       ))}
 

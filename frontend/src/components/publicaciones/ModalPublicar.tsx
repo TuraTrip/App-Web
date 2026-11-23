@@ -1,23 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useModalPublicar } from "@/hooks/useModalPublicar";
-import { formatHashtags, formatCommaSeparatedHashtags } from "@/lib/utils";
+import { Publicacion } from "@/types/publicacion";
+import { formatHashtags, getProxyImageUrl } from "@/lib/utils";
 import CameraCapture from "@/components/common/CameraCapture";
 import MapPicker from "@/components/common/MapPicker";
 
 interface ModalPublicarProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (idPublicacion: number) => void;
+  onSuccess: (publicacion: Publicacion) => void;
+  // Si se recibe, el modal edita esa publicación en lugar de crear una nueva
+  publicacion?: Publicacion;
 }
 
 export default function ModalPublicar({
   isOpen,
   onClose,
   onSuccess,
+  publicacion,
 }: ModalPublicarProps) {
   const {
+    vistaPreviaArchivo,
+    descartarArchivo,
     titulo,
     setTitulo,
     descripcion,
@@ -37,18 +43,30 @@ export default function ModalPublicar({
     setLongitud,
     direccion,
     setDireccion,
-  } = useModalPublicar({ onSuccess, onClose });
+  } = useModalPublicar({ publicacion, onSuccess, onClose });
 
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [mapPickerKey, setMapPickerKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const esEdicion = Boolean(publicacion);
+  const imagenVisible =
+    vistaPreviaArchivo ?? getProxyImageUrl(publicacion?.imagen);
+
+  // Limpia también el input para que pueda volver a elegirse el mismo archivo
+  const handleDescartarFoto = () => {
+    descartarArchivo();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
         <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 rounded-t-2xl px-6 pt-6 pb-4 flex items-start justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white pr-8">
-            Comparte un lugar en el Mundo
+            {esEdicion ? "Editar publicación" : "Comparte un lugar en el Mundo"}
           </h2>
           <button
             onClick={handleClose}
@@ -117,6 +135,7 @@ export default function ModalPublicar({
                 Lugar
               </label>
               <MapPicker
+                key={mapPickerKey}
                 latitud={latitud}
                 longitud={longitud}
                 direccion={direccion}
@@ -135,6 +154,7 @@ export default function ModalPublicar({
                     setLatitud(null);
                     setLongitud(null);
                     setDireccion("");
+                    setMapPickerKey((k) => k + 1);
                   }}
                   className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700 cursor-pointer"
                 >
@@ -145,9 +165,41 @@ export default function ModalPublicar({
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                Foto (JPG, JPEG, PNG o WebP - Máx 5 MB)
+                {esEdicion ? "Cambiar foto" : "Foto"} (JPG, JPEG, PNG o WebP -
+                Máx 5 MB)
               </label>
+              {imagenVisible && (
+                <div className="mb-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- la vista previa local es una URL blob */}
+                  <img
+                    src={imagenVisible}
+                    alt={
+                      vistaPreviaArchivo
+                        ? "Vista previa de la foto seleccionada"
+                        : "Foto actual de la publicación"
+                    }
+                    className="w-full max-h-56 object-contain rounded-xl bg-slate-100 dark:bg-slate-950 border border-gray-200 dark:border-slate-800"
+                  />
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {vistaPreviaArchivo
+                        ? "Foto seleccionada"
+                        : "Foto actual. Se conservará si no eliges otra."}
+                    </span>
+                    {vistaPreviaArchivo && (
+                      <button
+                        type="button"
+                        onClick={handleDescartarFoto}
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 cursor-pointer"
+                      >
+                        {esEdicion ? "Conservar foto actual" : "Quitar foto"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/jpeg, image/png, image/webp"
                 onChange={handleFileSelect}
@@ -181,7 +233,13 @@ export default function ModalPublicar({
               disabled={cargando}
               className="px-6 py-2.5 bg-[hsl(174_72%_40%)] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:bg-gray-400 transition shadow-md cursor-pointer"
             >
-              {cargando ? "Publicando..." : "Publicar"}
+              {esEdicion
+                ? cargando
+                  ? "Guardando..."
+                  : "Guardar cambios"
+                : cargando
+                  ? "Publicando..."
+                  : "Publicar"}
             </button>
           </div>
         </div>

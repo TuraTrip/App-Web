@@ -132,8 +132,9 @@ sesión, pero con token la respuesta incluye datos del usuario (si le gusta, si 
 | `GET` | `/publicaciones/siguiendo` | ✅ | De las cuentas que sigue |
 | `GET` | `/publicaciones/me-gusta`, `/guardadas` | ✅ | Con "me gusta" / guardadas por el usuario |
 | `POST` | `/publicaciones` (multipart) | ✅ | Parte `publicacion` (JSON) + 1 a 10 partes `archivos`. Acepta también una sola `archivo` (compatibilidad con la web) |
-| `PUT` | `/publicaciones/{id}` (JSON) | ✅ Autor/admin | Edita título, descripción, categoría y ubicación |
-| `PUT` | `/publicaciones/{id}/imagenes` (multipart) | ✅ Autor/admin | Parte `orden` (JSON: ids que se conservan y `"nueva:N"`) + `archivos` nuevos. Borra del disco las fotos quitadas |
+| `PUT` | `/publicaciones/{id}` (JSON) | ✅ Autor | Edita título, descripción, categoría y ubicación (la usa la app) |
+| `PUT` | `/publicaciones/{id}` (multipart) | ✅ Autor | Parte `publicacion` (JSON) y, opcional, `archivo`: la foto nueva reemplaza la portada (la usa la web) |
+| `PUT` | `/publicaciones/{id}/imagenes` (multipart) | ✅ Autor | Parte `orden` (JSON: ids que se conservan y `"nueva:N"`) + `archivos` nuevos. Borra del disco las fotos quitadas |
 | `DELETE` | `/publicaciones/{id}` | ✅ Autor/admin | Borra la publicación y sus fotos |
 | `POST` / `DELETE` | `/publicaciones/{id}/me-gusta` | ✅ | Da o quita "me gusta"; devuelve el total |
 | `POST` / `DELETE` | `/publicaciones/{id}/guardar` | ✅ | Guarda o quita de guardados (privado) |

@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import BotonOpcionesPublicacion from "./BotonOpcionesPublicacion";
 import { formatDate, getProxyImageUrl } from "@/lib/utils";
+import { Publicacion } from "@/types/publicacion";
 
 interface CabeceraAutorProps {
-  publicacionId: number;
+  publicacion: Publicacion;
   autorId: number;
   autorNombre?: string;
   autorFotoPerfil?: string | null;
@@ -14,10 +15,11 @@ interface CabeceraAutorProps {
   esPropietario: boolean;
   esAdmin: boolean;
   onDeleteSuccess?: (id: number) => void;
+  onEditSuccess?: (publicacion: Publicacion) => void;
 }
 
 export default function CabeceraAutor({
-  publicacionId,
+  publicacion,
   autorId,
   autorNombre,
   autorFotoPerfil,
@@ -25,6 +27,7 @@ export default function CabeceraAutor({
   esPropietario,
   esAdmin,
   onDeleteSuccess,
+  onEditSuccess,
 }: CabeceraAutorProps) {
   const perfilUrl = esPropietario ? "/perfil" : `/perfil/${autorId}`;
 
@@ -73,10 +76,11 @@ export default function CabeceraAutor({
 
       {/* Menú de Opciones */}
       <BotonOpcionesPublicacion
-        publicacionId={publicacionId}
+        publicacion={publicacion}
         esPropietario={esPropietario}
         esAdmin={esAdmin}
         onDeleteSuccess={onDeleteSuccess}
+        onEditSuccess={onEditSuccess}
       />
     </header>
   );

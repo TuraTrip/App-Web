@@ -2,25 +2,31 @@
 
 import { useState, useRef, useEffect } from "react";
 import { publicacionService } from "@/services/publicacionService";
+import { Publicacion } from "@/types/publicacion";
+import ModalPublicar from "./ModalPublicar";
 
 interface BotonOpcionesPublicacionProps {
-  publicacionId: number;
+  publicacion: Publicacion;
   esPropietario: boolean;
   esAdmin?: boolean;
   onDeleteSuccess?: (id: number) => void;
+  onEditSuccess?: (publicacion: Publicacion) => void;
 }
 
 export default function BotonOpcionesPublicacion({
-  publicacionId,
+  publicacion,
   esPropietario,
   esAdmin = false,
   onDeleteSuccess,
+  onEditSuccess,
 }: BotonOpcionesPublicacionProps) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarEdicion, setMostrarEdicion] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const publicacionId = publicacion.id;
   const puedeEliminar = esPropietario || esAdmin;
 
   useEffect(() => {
@@ -82,6 +88,30 @@ export default function BotonOpcionesPublicacion({
 
         {menuAbierto && (
           <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl py-1 z-20 transition-all">
+            {esPropietario && (
+              <button
+                onClick={() => {
+                  setMenuAbierto(false);
+                  setMostrarEdicion(true);
+                }}
+                className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2 cursor-pointer"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Editar publicación
+              </button>
+            )}
             <button
               onClick={() => {
                 setMenuAbierto(false);
@@ -107,6 +137,18 @@ export default function BotonOpcionesPublicacion({
           </div>
         )}
       </div>
+
+      {/* Se monta al abrir para que el formulario cargue los datos más recientes */}
+      {mostrarEdicion && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ModalPublicar
+            isOpen
+            publicacion={publicacion}
+            onClose={() => setMostrarEdicion(false)}
+            onSuccess={(actualizada) => onEditSuccess?.(actualizada)}
+          />
+        </div>
+      )}
 
       {mostrarModal && (
         <div
