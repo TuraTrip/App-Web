@@ -74,7 +74,7 @@ public class ComentarioServiceImpl implements ComentarioService {
         }
 
         return comentarioRepository
-                .findByPublicacionIdOrderByFechaCreacionAsc(publicacionId)
+                .findByPublicacionIdAndOcultoFalseOrderByFechaCreacionAsc(publicacionId)
                 .stream()
                 .map(comentarioMapper::toResponse)
                 .toList();
@@ -122,7 +122,10 @@ public class ComentarioServiceImpl implements ComentarioService {
 
         boolean esPropietario = comentario.getUsuario().getId().equals(usuarioActual.getId());
 
-        if (!esAdmin && !esPropietario) {
+        // El dueño de la publicación también puede borrar comentarios de su publicación.
+        boolean esDuenoPublicacion = comentario.getPublicacion().getUsuario().getId().equals(usuarioActual.getId());
+
+        if (!esAdmin && !esPropietario && !esDuenoPublicacion) {
             throw new AccesoNoAutorizadoException("No tienes permisos para eliminar este comentario");
         }
 
@@ -140,7 +143,7 @@ public class ComentarioServiceImpl implements ComentarioService {
         Pageable pageable = PageRequest.of(page, size);
 
         return comentarioRepository
-                .findByUsuarioIdOrderByFechaCreacionDesc(usuarioId, pageable)
+                .findByUsuarioIdAndOcultoFalseOrderByFechaCreacionDesc(usuarioId, pageable)
                 .map(comentarioMapper::toResponse);
     }
 

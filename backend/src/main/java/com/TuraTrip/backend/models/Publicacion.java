@@ -1,26 +1,17 @@
 package com.TuraTrip.backend.models;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.hibernate.annotations.CreationTimestamp;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "publicaciones")
@@ -44,7 +35,6 @@ public class Publicacion {
     @Column(nullable = false, length = 500)
     private String imagen;
 
-    @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
@@ -56,15 +46,34 @@ public class Publicacion {
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
 
-    @Column(name = "direccion", length = 500)
+    /** Dirección legible, p. ej. "Playa Piangüita, Buenaventura". Opcional. */
+    @Column(length = 500)
     private String direccion;
 
-    @Column(name = "latitud")
     private Double latitud;
 
-    @Column(name = "longitud")
     private Double longitud;
 
-    @OneToMany(mappedBy = "publicacion", fetch = FetchType.LAZY)
+    /** Se calcula en la misma consulta, sin cargar todos los "me gusta". */
+    @Formula("(select count(*) from me_gusta m where m.publicacion_id = id)")
+    private Long totalMeGusta;
+
+    /** Oculta por denuncias: no aparece en feed, búsqueda ni mapa hasta que un admin la revisa. */
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean oculta = false;
+
+    // Los comentarios se borran junto con la publicación (también hay ON DELETE CASCADE en la BD).
+    @Builder.Default
+    @OneToMany(mappedBy = "publicacion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("fechaCreacion ASC")
+    // Los comentarios ocultos por denuncias no se muestran dentro de la publicación.
+    @SQLRestriction("oculto = false")
     private List<Comentario> comentarios = new ArrayList<>();
+
+    /** Fotos en orden (máx. 10). La primera coincide con {@link #imagen}, la portada. */
+    @Builder.Default
+    @OneToMany(mappedBy = "publicacion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orden ASC")
+    private List<PublicacionImagen> imagenes = new ArrayList<>();
 }

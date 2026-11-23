@@ -18,12 +18,13 @@ Para dar seguimiento a nuestras tareas, historias de usuario y sprints, utilizam
 
 ## 🛠️ Stack Tecnológico
 
-| Capa          | Tecnología                             |
-| :------------ | :------------------------------------- |
-| Frontend      | Next.js 16 + TypeScript + Tailwind CSS |
-| Backend       | Spring Boot 4 + Java 21                |
-| Base de datos | MySQL 9.7                              |
-| Contenedores  | Docker + Docker Compose                |
+| Capa | Tecnología |
+| :--- | :--- |
+| Frontend | Next.js 16 + TypeScript + Tailwind CSS |
+| App móvil | Android nativo: Kotlin + Jetpack Compose (proyecto `App-Movil`) |
+| Backend | Spring Boot 4 + Java 21 |
+| Base de datos | MySQL 9.7 (migraciones con Flyway) |
+| Contenedores | Docker + Docker Compose |
 
 ## ⚡ Inicio Rápido (desarrollo local)
 
@@ -43,9 +44,9 @@ docker compose up -d --build
 | Swagger UI  | http://localhost:8080/swagger-ui.html |
 
 Para más detalles de cada servicio:
-
-- [Documentación del Backend](./backend/README.md)
+- [Documentación del Backend](./backend/README.md) — endpoints, migraciones, variables y seguridad
 - [Documentación del Frontend](./frontend/README.md)
+- App móvil: README del proyecto `App-Movil`
 
 ## 🚢 Despliegue en Producción (CI/CD)
 
@@ -81,3 +82,19 @@ El proyecto se despliega automáticamente a un VPS con cada `push` a `main`, med
 ### Correos que llegan a Spam
 
 Si los correos de verificación/recuperación caen en Spam, no es un bug de la app (el log mostrará `📧 Correo enviado con éxito`): es un tema de reputación del remitente. En producción, usa un dominio propio + proveedor transaccional (Resend, Brevo, Amazon SES) con SPF/DKIM/DMARC configurados, en vez de una cuenta Gmail personal como `SMTP_HOST`.
+
+## 🆕 Funciones añadidas para la app móvil
+
+El backend se amplió para la app Android (migraciones `V8` a `V12`, se aplican solas al arrancar):
+
+- **Publicaciones** con ubicación (búsqueda por GPS, mapa, "cerca de mí"), **hasta 10 fotos**,
+  edición de datos y fotos, búsqueda en el servidor.
+- **Interacción**: "me gusta", guardados (privados), seguidores y feed "Siguiendo". Los
+  comentarios usan la implementación del equipo, con el check de verificado del autor.
+- **Perfil**: biografía, contadores y **Premium** (perfil verificado, gratis por ahora).
+- **Moderación**: denuncias de publicaciones y comentarios; con 3 denuncias se ocultan solas y
+  un administrador las revisa.
+- **Seguridad**: se activó `@EnableMethodSecurity` (las rutas de administrador de categorías no
+  estaban protegidas) y el correo ya no se expone en perfiles ajenos.
+
+> ⚠️ **Antes de desplegar:** sube el secret `MAX_REQUEST_SIZE` a `60MB` (10 fotos por publicación).

@@ -50,6 +50,19 @@ public class Usuario {
     @Column(name = "foto_perfil", length = 500)
     private String fotoPerfil;
 
+    /** Frase corta del perfil, p. ej. "Explorando Colombia y el mundo". */
+    @Column(length = 160)
+    private String biografia;
+
+    /** Fin de la suscripción Premium; null o en el pasado = cuenta normal. */
+    @Column(name = "premium_hasta")
+    private LocalDateTime premiumHasta;
+
+    /** Perfil verificado: tiene una suscripción Premium vigente. No es una columna. */
+    public boolean isVerificado() {
+        return premiumHasta != null && premiumHasta.isAfter(LocalDateTime.now());
+    }
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean habilitado = false;

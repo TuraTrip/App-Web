@@ -18,6 +18,10 @@ public interface ComentarioMapper {
     )
     @Mapping(source = "publicacion.id", target = "publicacionId")
     @Mapping(source = "publicacion.titulo", target = "publicacionTitulo")
+    @Mapping(
+        target = "autorVerificado",
+        expression = "java(comentario.getUsuario() != null && comentario.getUsuario().isVerificado())"
+    )
     ComentarioResponse toResponse(Comentario comentario);
 
 }

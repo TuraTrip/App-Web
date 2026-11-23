@@ -4,6 +4,8 @@ import com.TuraTrip.backend.dtos.request.EditarPerfilRequest;
 import com.TuraTrip.backend.dtos.response.ComentarioResponse;
 import com.TuraTrip.backend.dtos.response.PerfilResponse;
 import com.TuraTrip.backend.services.ComentarioService;
+import com.TuraTrip.backend.dtos.response.UsuarioResumenResponse;
+import java.util.List;
 import com.TuraTrip.backend.services.PerfilService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +57,42 @@ public class PerfilController {
         Page<ComentarioResponse> comentarios =
                 comentarioService.obtenerComentariosPorUsuarioId(id, page, size);
         return ResponseEntity.ok(comentarios);
+    }
+
+    /** Activa Premium 30 días (perfil verificado). Modo demostración: no se cobra nada. */
+    @PostMapping("/suscripcion")
+    public ResponseEntity<PerfilResponse> activarPremium(Authentication authentication) {
+        return ResponseEntity.ok(perfilService.activarPremium(authentication.getName()));
+    }
+
+    @DeleteMapping("/suscripcion")
+    public ResponseEntity<PerfilResponse> cancelarPremium(Authentication authentication) {
+        return ResponseEntity.ok(perfilService.cancelarPremium(authentication.getName()));
+    }
+
+    /** Búsqueda pública de cuentas por nombre (máx. 20). No expone correos. */
+    @GetMapping("/buscar")
+    public ResponseEntity<List<UsuarioResumenResponse>> buscar(@RequestParam(defaultValue = "") String q) {
+        return ResponseEntity.ok(perfilService.buscar(q));
+    }
+
+    @PostMapping("/{id}/seguir")
+    public ResponseEntity<PerfilResponse> seguir(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(perfilService.seguir(id, authentication.getName()));
+    }
+
+    @DeleteMapping("/{id}/seguir")
+    public ResponseEntity<PerfilResponse> dejarDeSeguir(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(perfilService.dejarDeSeguir(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/seguidores")
+    public ResponseEntity<List<UsuarioResumenResponse>> obtenerSeguidores(@PathVariable Long id) {
+        return ResponseEntity.ok(perfilService.obtenerSeguidores(id));
+    }
+
+    @GetMapping("/{id}/seguidos")
+    public ResponseEntity<List<UsuarioResumenResponse>> obtenerSeguidos(@PathVariable Long id) {
+        return ResponseEntity.ok(perfilService.obtenerSeguidos(id));
     }
 }

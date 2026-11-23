@@ -38,4 +38,9 @@ public class Comentario {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "publicacion_id", nullable = false)
     private Publicacion publicacion;
+
+    /** Oculto por denuncias hasta que un administrador lo revisa. */
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean oculto = false;
 }

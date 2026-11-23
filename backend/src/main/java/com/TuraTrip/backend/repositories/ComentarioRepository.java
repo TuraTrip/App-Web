@@ -12,8 +12,8 @@ import com.TuraTrip.backend.models.Comentario;
 @Repository
 public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
 
-    List<Comentario> findByPublicacionIdOrderByFechaCreacionAsc(Long publicacionId);
+    List<Comentario> findByPublicacionIdAndOcultoFalseOrderByFechaCreacionAsc(Long publicacionId);
 
-    Page<Comentario> findByUsuarioIdOrderByFechaCreacionDesc(Long usuarioId, Pageable pageable);
+    Page<Comentario> findByUsuarioIdAndOcultoFalseOrderByFechaCreacionDesc(Long usuarioId, Pageable pageable);
 
 }
